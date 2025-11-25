@@ -1,8 +1,3 @@
-"""
-Image Transformation Module
-Resize, crop, rotate, flip operations using Pillow
-"""
-
 from PIL import Image, ImageOps
 from typing import Literal, Optional, Tuple
 import math
@@ -387,7 +382,6 @@ if __name__ == "__main__":
         result = scale_image(img, scale)
         
     else:
-
         sys.exit(1)
     
     result.save(output_path)

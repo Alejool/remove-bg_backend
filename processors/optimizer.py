@@ -1,8 +1,3 @@
-"""
-Image Optimizer Processor
-Handles image optimization, compression, and format conversion
-"""
-
 from PIL import Image, ImageFilter, ImageEnhance
 from pathlib import Path
 import io
@@ -10,17 +5,14 @@ import sys
 import traceback
 
 
-
-
 # Register AVIF support
 try:
     import pillow_heif
     from pillow_heif import register_heif_opener, register_avif_opener
+    from PIL import ImageResampling # Asegurar importación para las nuevas versiones de PIL
     
     register_heif_opener()
     register_avif_opener()
-    
-
     
     if ".avif" not in Image.registered_extensions():
         from pillow_heif import HeifImagePlugin
@@ -31,17 +23,15 @@ except Exception as e:
     pass
 
 
-
 def _diagnose_avif_support():
     """Diagnostic helper for AVIF support"""
     try:
         ext_map = Image.registered_extensions()
         formats = set(ext_map.values())
-        supported_by_name = 'AVIF' in formats or 'avif' in formats
+        supported_by_name = 'AVIF' in formats or '.avif' in ext_map
 
         return supported_by_name
     except Exception:
-
         traceback.print_exc()
         return False
 
@@ -54,44 +44,58 @@ def optimize_image(
     enhance: bool = True
 ) -> Image.Image:
     """
-    Optimize image with gentle enhancements for better quality
+    Optimize image with gentle enhancements for better quality.
+    Lógica ajustada para priorizar la calidad y el realce controlado.
     """
     try:
         img = image.copy()
+        fmt = format.lower()
 
         # Handle format-specific mode conversions
-        if format.lower() in ('jpeg', 'jpg'):
+        if fmt in ('jpeg', 'jpg'):
+            # Convertir a RGB (manejar transparencia mezclando con fondo blanco)
             if img.mode in ('RGBA', 'LA', 'P'):
                 background = Image.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'P':
+                # Asegurar la conversión a RGBA antes de la mezcla para extraer la máscara alfa correctamente
+                if img.mode != 'RGBA':
                     img = img.convert('RGBA')
-                background.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                    
+                background.paste(img, mask=img.split()[-1])
                 img = background
             elif img.mode != 'RGB':
                 img = img.convert('RGB')
 
-        elif format.lower() == 'avif':
-            if img.mode == 'RGBA':
-                pass
-            elif img.mode in ('LA', 'P'):
+        elif fmt == 'avif':
+            # Si tiene transparencia o es LA/P, convertir a RGBA
+            if img.mode in ('LA', 'P'):
                 img = img.convert('RGBA')
-            else:
-                img = img.convert('RGB')
+            elif img.mode != 'RGBA' and img.mode != 'RGB':
+                img = img.convert('RGB') # AVIF soporta RGB o RGBA
 
-        elif format.lower() in ('webp', 'png'):
+        elif fmt in ('webp', 'png'):
+            # Formatos que soportan transparencia: asegurar RGBA si la tiene o RGB si no la tiene
             if img.mode not in ('RGBA', 'RGB'):
                 img = img.convert('RGBA')
+            elif img.mode == 'P':
+                 img = img.convert('RGBA')
+
 
         # Apply GENTLE enhancements only for lossy formats
-        if enhance and format.lower() not in ('png',):
-            # GENTLE sharpening
-            img = img.filter(ImageFilter.SHARPEN)
+        # No se aplica realce a PNG (lossless)
+        if enhance and fmt not in ('png',):
             
-            # GENTLE contrast (reduced from 1.15 to 1.08)
-            img = ImageEnhance.Contrast(img).enhance(1.08)
+            # --- MEJORA DE CALIDAD: UNARP MASK (mejor que SHARPEN) ---
+            # UnsharpMask permite más control para evitar artefactos
+            # Radio 1.5, Porcentaje 150, Umbral 3 es un buen realce "gentle" de alta calidad
+            img = img.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=3))
             
-            # GENTLE color (reduced from 1.1 to 1.05)
-            img = ImageEnhance.Color(img).enhance(1.05)
+            # --- MEJORA DE CONTRASTE Y COLOR ---
+            
+            # GENTLE contrast (1.10 es un valor seguro para realce sutil)
+            img = ImageEnhance.Contrast(img).enhance(1.10)
+            
+            # GENTLE color (1.08 es un valor seguro para realce sutil)
+            img = ImageEnhance.Color(img).enhance(1.08)
 
         return img
 
@@ -107,51 +111,63 @@ def save_optimized(
     remove_exif: bool = True
 ) -> int:
     """
-    Save optimized image with high quality settings
+    Save optimized image with high quality settings.
+    Lógica ajustada para maximizar la calidad en el guardado.
     """
     try:
         save_kwargs = {}
         fmt = format.lower()
+        
+        # Asegurar que el modo es correcto antes de guardar
+        if fmt in ('jpeg', 'jpg') and image.mode != 'RGB':
+            image = image.convert('RGB')
 
         if fmt == 'webp':
             save_kwargs = {
                 'format': 'WEBP',
-                'quality': max(90, quality),
-                'method': 6,
+                'quality': max(95, quality), # Subir el mínimo a 95
+                'method': 6, # Mayor calidad, más lento
                 'lossless': quality >= 100,
             }
 
         elif fmt == 'avif':
             save_kwargs = {
                 'format': 'AVIF',
-                'quality': max(85, quality),
-                'speed': 2,
+                'quality': max(90, quality), # Subir el mínimo a 90
+                'speed': 1, # Priorizar calidad (más lento)
             }
 
         elif fmt == 'png':
             save_kwargs = {
                 'format': 'PNG',
                 'optimize': True,
-                'compress_level': 9,
+                'compress_level': 9, # Compresión máxima
             }
 
         elif fmt in ('jpeg', 'jpg'):
             save_kwargs = {
                 'format': 'JPEG',
-                'quality': max(90, quality),
+                'quality': max(95, quality), # Mínimo 95 de calidad
                 'optimize': True,
                 'progressive': True,
-                'subsampling': 0,
+                'subsampling': 0, # MÁXIMA calidad de color (4:4:4)
             }
 
         if remove_exif and fmt != 'png':
-            save_kwargs['exif'] = b''
+            # Manejo de EXIF
+            if image.info and 'exif' in image.info:
+                save_kwargs['exif'] = b''
+            else:
+                 save_kwargs.pop('exif', None)
+
 
         if fmt == 'avif':
             save_kwargs.pop('exif', None)
             supported = _diagnose_avif_support()
             if not supported:
-                raise Exception("AVIF save support not registered in Pillow.")
+                # Fallback a WebP si AVIF no es soportado
+                print("AVIF save support not registered in Pillow, falling back to WEBP.")
+                return save_optimized(image, output_path, 'webp', quality, remove_exif)
 
         # Save image
         buffer = io.BytesIO()
