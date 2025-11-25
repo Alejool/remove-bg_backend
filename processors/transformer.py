@@ -351,13 +351,7 @@ if __name__ == "__main__":
     from pathlib import Path
     
     if len(sys.argv) < 3:
-        print("Usage: python transformer.py input.jpg output.jpg [operation] [params...]")
-        print("Operations:")
-        print("  resize WIDTH HEIGHT [mode]")
-        print("  crop X Y WIDTH HEIGHT")
-        print("  rotate ANGLE")
-        print("  flip [h] [v]")
-        print("  scale FACTOR")
+
         sys.exit(1)
     
     input_path = Path(sys.argv[1])
@@ -393,8 +387,8 @@ if __name__ == "__main__":
         result = scale_image(img, scale)
         
     else:
-        print(f"Unknown operation: {operation}")
+
         sys.exit(1)
     
     result.save(output_path)
-    print(f"✅ Transformed image saved to {output_path}")
+

@@ -1,8 +1,3 @@
-"""
-Image Enhancement Module
-Advanced quality improvements using OpenCV
-"""
-
 import cv2
 import numpy as np
 from PIL import Image
@@ -351,8 +346,6 @@ if __name__ == "__main__":
     from pathlib import Path
     
     if len(sys.argv) < 3:
-        print("Usage: python enhancer.py input.jpg output.jpg [operation]")
-        print("Operations: denoise, sharpen, contrast, auto")
         sys.exit(1)
     
     input_path = Path(sys.argv[1])
@@ -370,8 +363,6 @@ if __name__ == "__main__":
     elif operation == 'auto':
         result = auto_enhance(img)
     else:
-        print(f"Unknown operation: {operation}")
         sys.exit(1)
     
     result.save(output_path)
-    print(f"✅ Enhanced image saved to {output_path}")

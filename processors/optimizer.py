@@ -9,7 +9,7 @@ import io
 import sys
 import traceback
 
-print('registered_extensions:', Image.registered_extensions())
+
 
 
 # Register AVIF support
@@ -20,18 +20,16 @@ try:
     register_heif_opener()
     register_avif_opener()
     
-    print("pillow-heif AVIF/HEIF support loaded successfully.")
+
     
     if ".avif" not in Image.registered_extensions():
         from pillow_heif import HeifImagePlugin
         Image.register_extension("AVIF", ".avif")
         Image.register_save("AVIF", HeifImagePlugin.HeifImageFile._save)
-        print("⚠️ AVIF was not registered automatically — manually registered.")
-    else:
-        print("✔ AVIF already registered inside Pillow.")
 
 except Exception as e:
-    print("⚠️ pillow-heif could not be loaded. AVIF/HEIF read/write may fail:", e)
+    pass
+
 
 
 def _diagnose_avif_support():
@@ -40,10 +38,10 @@ def _diagnose_avif_support():
         ext_map = Image.registered_extensions()
         formats = set(ext_map.values())
         supported_by_name = 'AVIF' in formats or 'avif' in formats
-        print("AVIF registered as a format?:", supported_by_name)
+
         return supported_by_name
     except Exception:
-        print("Failed diagnosing AVIF support.")
+
         traceback.print_exc()
         return False
 

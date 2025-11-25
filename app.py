@@ -221,20 +221,8 @@ async def process_image(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 if __name__ == "__main__":
     import uvicorn
-    
-    print("""
-    ╔══════════════════════════════════════════════════════════╗
-    ║                                                          ║
-    ║           🖼️  Image Manager API Server                   ║
-    ║                                                          ║
-    ║  Server running at: http://{}:{}              ║
-    ║  API Documentation: http://{}:{}/docs         ║
-    ║                                                          ║
-    ╚══════════════════════════════════════════════════════════╝
-    """.format(config.HOST, config.PORT, config.HOST, config.PORT))
     
     uvicorn.run(
         "app:app",

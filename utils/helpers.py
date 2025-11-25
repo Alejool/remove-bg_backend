@@ -114,7 +114,7 @@ def generate_placeholder_blur(image: Image.Image, size: int = 40) -> str:
         return f"data:image/jpeg;base64,{img_str}"
     
     except Exception as e:
-        print(f"Error generating placeholder: {str(e)}")
+        pass
         return ""
 
 

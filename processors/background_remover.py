@@ -1,23 +1,11 @@
-"""
-Professional Background Removal System
-Supports multiple engines for optimal quality across different image types
-"""
-
 from PIL import Image, ImageFilter, ImageEnhance
 import io
 import numpy as np
 from typing import Literal, Optional
 
-# ============================================================================
-# MULTI-ENGINE BACKGROUND REMOVAL SYSTEM
-# ============================================================================
-
 BackgroundRemovalEngine = Literal['rembg', 'carvekit', 'backgroundremover', 'auto']
 
 
-# ----------------------------------------------------------------------------
-# ENGINE 1: REMBG (Multiple Models)
-# ----------------------------------------------------------------------------
 def _remove_bg_rembg(
     image: Image.Image,
     model: str = 'u2net'
@@ -55,9 +43,6 @@ def _remove_bg_rembg(
         raise Exception(f"Rembg removal failed: {str(e)}")
 
 
-# ----------------------------------------------------------------------------
-# ENGINE 2: CARVEKIT (Best for Illustrations)
-# ----------------------------------------------------------------------------
 def _remove_bg_carvekit(image: Image.Image) -> Image.Image:
     """
     Remove background using CarveKit - excellent for illustrations and flat designs.
@@ -94,9 +79,6 @@ def _remove_bg_carvekit(image: Image.Image) -> Image.Image:
         raise Exception(f"CarveKit removal failed: {str(e)}")
 
 
-# ----------------------------------------------------------------------------
-# ENGINE 3: BACKGROUNDREMOVER (Sharp Edges)
-# ----------------------------------------------------------------------------
 def _remove_bg_backgroundremover(image: Image.Image) -> Image.Image:
     """
     Remove background using backgroundremover - excellent for sharp edges.
@@ -128,9 +110,7 @@ def _remove_bg_backgroundremover(image: Image.Image) -> Image.Image:
         raise Exception(f"BackgroundRemover removal failed: {str(e)}")
 
 
-# ----------------------------------------------------------------------------
-# ILLUSTRATION DETECTION
-# ----------------------------------------------------------------------------
+#
 def _is_illustration(image: Image.Image) -> bool:
     """
     Detect if image is likely an illustration/flat design.
@@ -166,9 +146,6 @@ def _is_illustration(image: Image.Image) -> bool:
         return False
 
 
-# ----------------------------------------------------------------------------
-# POST-PROCESSING FOR ILLUSTRATIONS
-# ----------------------------------------------------------------------------
 def _refine_illustration_edges(image: Image.Image) -> Image.Image:
     """
     Refine edges for illustration-style images.
@@ -196,13 +173,10 @@ def _refine_illustration_edges(image: Image.Image) -> Image.Image:
         return result
         
     except Exception as e:
-        print(f"Edge refinement failed: {str(e)}")
         return image
 
 
-# ============================================================================
-# PUBLIC API
-# ============================================================================
+
 
 def remove_background(
     image: Image.Image,
@@ -237,11 +211,9 @@ def remove_background(
             # Try CarveKit for illustrations (best quality)
             if is_illust:
                 try:
-                    print("🎨 Detected illustration - using CarveKit")
                     result = _remove_bg_carvekit(image)
                     return _refine_illustration_edges(result)
                 except Exception as e:
-                    print(f"CarveKit failed, falling back to rembg: {e}")
                     try:
                         result = _remove_bg_rembg(image, model='u2netp')
                         return _refine_illustration_edges(result)
@@ -252,10 +224,8 @@ def remove_background(
             # For photos, try backgroundremover first (sharp edges)
             else:
                 try:
-                    print("📷 Detected photo - using BackgroundRemover")
                     return _remove_bg_backgroundremover(image)
                 except Exception as e:
-                    print(f"BackgroundRemover failed, falling back to rembg: {e}")
                     return _remove_bg_rembg(image, model='u2net')
         
         # Use specific engine
@@ -280,7 +250,6 @@ def remove_background(
             
     except Exception as e:
         # Ultimate fallback: basic rembg
-        print(f"All engines failed, using basic rembg: {e}")
         try:
             from rembg import remove
             buf = io.BytesIO()
@@ -299,29 +268,20 @@ def has_transparency(image: Image.Image) -> bool:
     )
 
 
-# ============================================================================
-# CLI TEST
-# ============================================================================
 if __name__ == "__main__":
     import sys
     from pathlib import Path
     
     if len(sys.argv) < 3:
-        print("Usage: python background_remover.py input.png output.png [engine]")
-        print("Engines: auto (default), rembg, carvekit, backgroundremover")
         sys.exit(1)
     
     input_path = Path(sys.argv[1])
     output_path = Path(sys.argv[2])
     engine = sys.argv[3] if len(sys.argv) > 3 else 'auto'
     
-    print(f"Loading image: {input_path}")
     img = Image.open(input_path)
     
-    print(f"Removing background using engine: {engine}")
     result = remove_background(img, engine=engine)
     
-    print(f"Saving result: {output_path}")
     result.save(output_path, "PNG")
     
-    print("✅ Done!")
