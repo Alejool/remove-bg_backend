@@ -3,24 +3,20 @@ FROM python:3.11-slim
 
 # 2. INSTALAR LIBRERÍAS DE SISTEMA CRUCIALES
 # Esto soluciona los errores de compilación 'subprocess-exited-with-error' y 'exit code: 1'
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    # Herramientas de compilación esenciales (GCC, etc.)
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get update -o Acquire::Check-Valid-Until=false -o Acquire::Check-Date=false && \
+    apt-get install -y --no-install-recommends --fix-missing \
     build-essential \
     pkg-config \
-    # Dependencias de OpenCV y formatos de imagen
     libjpeg-dev \
     libpng-dev \
     zlib1g-dev \
-    # Librerías para NumPy/SciPy (optimización BLAS/LAPACK)
     libatlas-base-dev \
-    # Librerías de runtime para OpenCV en entornos sin display (headless)
     libsm6 \
     libxext6 \
     libglib2.0-0 \
-    # Dependencias de pycairo/cairosvg
     libcairo2-dev && \
-    # Limpiar caché para reducir el tamaño de la imagen Docker
     rm -rf /var/lib/apt/lists/*
 
 # 3. DEFINIR EL DIRECTORIO DE TRABAJO
