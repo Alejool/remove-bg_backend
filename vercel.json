@@ -4,11 +4,10 @@
       "src": "app.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.9" 
+        "runtime": "python3.11" 
       }
     }
   ],
-  "installCommand": "pip3.9 install -r requirements.txt",
   "routes": [
     {
       "src": "/(.*)",
