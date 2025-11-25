@@ -16,8 +16,6 @@ backgroundremover==0.2.7
 torch==2.1.2
 torchvision==0.16.2
 
-# torch>=2.2.0+cpu --extra-index-url https://download.pytorch.org/whl/cpu
-# torchvision==0.16.2
 
 # Image Processing & Enhancement
 opencv-python==4.9.0.80
