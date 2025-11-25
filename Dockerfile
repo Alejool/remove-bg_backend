@@ -1,15 +1,26 @@
-# Usar Python 3.11, que es compatible con Torch 2.1.2
-FROM python:3.11-slim 
+# 1. Usar Python 3.11 (Compatible con Torch)
+FROM python:3.11-slim
 
-# Establecer el directorio de trabajo
+# 2. INSTALAR LIBRERÍAS DE SISTEMA (SOLUCIÓN al "subprocess-exited-with-error")
+# 'build-essential' incluye el compilador C/C++.
+# 'libcairo2-dev' es crucial para pycairo/cairosvg.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libcairo2-dev \
+        pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+# 3. DEFINIR EL DIRECTORIO DE TRABAJO
 WORKDIR /usr/src/app
 
-# Copiar e instalar dependencias. Render usará este comando.
+# 4. INSTALAR DEPENDENCIAS DE PYTHON
 COPY requirements.txt .
+# Ahora 'pip install' funcionará porque las herramientas necesarias ya existen.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar tu código
+# 5. COPIAR EL CÓDIGO RESTANTE
 COPY . .
 
-# Comando de inicio para FastAPI
+# 6. COMANDO DE INICIO
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "10000"]
